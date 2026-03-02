@@ -23,7 +23,7 @@ The pipeline runs in 10 steps:
 5. **Bundle diary entries** -- groups food items into meal events by meal label and entry timestamp proximity
 6. **Resolve AM/PM ambiguity** -- for 12h-format participants, uses CGM excursion scoring, `Item added at` timestamps, and meal label heuristics to disambiguate
 7. *(reserved)*
-8. **Match meals to excursions** -- assigns meal bundles to detected excursions using a cost function (time distance + CHO/rise similarity); handles batch days with rank-order matching and real-time days with greedy assignment
+8. **Match meals to excursions** -- assigns meal bundles to detected excursions using a cost function (time distance + sugar/rise similarity); handles batch days with rank-order matching and real-time days with greedy assignment. The cost function uses total sugars (TOTSUG) rather than total CHO for magnitude matching, since simple sugars drive the acute spikes detected by the algorithm. Total CHO (including starch and fibre) is still used for the threshold filter
 9. *(reserved)*
 10. **Produce outputs** -- writes corrected CSV, processing report, per-participant CGM plots, and a global summary plot
 

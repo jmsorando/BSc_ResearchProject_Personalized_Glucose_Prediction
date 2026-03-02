@@ -33,7 +33,7 @@ MAX_ALLOWABLE_SHIFT_MIN = 180
 LOW_CONFIDENCE_CAP_MIN  = 30
 STACKING_WINDOW_MIN     = 45
 STACKING_ACTIVE_BUF_MIN = 30
-W_TIME = 2.0;  W_CHO = 1.0
+W_TIME = 2.0;  W_SUG = 1.0
 AMPM_SEARCH_WIN_MIN     = 45
 
 # ── Helpers ─────────────────────────────────────────────────────────
@@ -525,8 +525,8 @@ def _batch_assign(sig, day_exc, anchored, assigned):
         sel = sorted(sorted(day_exc, key=lambda e:e["rise_mmol"], reverse=True)[:N],
                      key=lambda e:e["est_meal_time"])
     else:
-        by_cho = sorted(sig_s, key=lambda x:x[1]["total_CHO"], reverse=True)
-        sig_s = sorted(by_cho[:M], key=lambda x:x[1]["reported_time"] or datetime.min)
+        by_sug = sorted(sig_s, key=lambda x:x[1]["total_TOTSUG"], reverse=True)
+        sig_s = sorted(by_sug[:M], key=lambda x:x[1]["reported_time"] or datetime.min)
         sel = sorted(day_exc, key=lambda e:e["est_meal_time"])
     for k in range(min(len(sig_s),len(sel))):
         bi,b = sig_s[k]; exc=sel[k]
@@ -535,7 +535,7 @@ def _batch_assign(sig, day_exc, anchored, assigned):
 
 def _rt_assign(sig, excs, anchored, assigned):
     if not excs or not sig: return
-    cho_max = max(b["total_CHO"] for _,b in sig) or 1
+    sug_max = max(b["total_TOTSUG"] for _,b in sig) or 1
     rise_max = max(e["rise_mmol"] for e in excs) or 1
     avail = set(i for i,_ in sig)
     for exc in sorted(excs, key=lambda e:e["est_meal_time"]):
@@ -545,9 +545,9 @@ def _rt_assign(sig, excs, anchored, assigned):
             sh = abs((b["reported_time"]-exc["est_meal_time"]).total_seconds()/60)
             if sh>MAX_ALLOWABLE_SHIFT_MIN: continue
             tc = W_TIME*sh/60
-            nc = b["total_CHO"]/cho_max; nr = exc["rise_mmol"]/rise_max
-            cc = W_CHO*abs(nc-nr)
-            c = tc+cc
+            ns = b["total_TOTSUG"]/sug_max; nr = exc["rise_mmol"]/rise_max
+            sc = W_SUG*abs(ns-nr)
+            c = tc+sc
             if c<best_c: best_c=c; best_i=bi
         if best_i is not None:
             for bi,b in sig:

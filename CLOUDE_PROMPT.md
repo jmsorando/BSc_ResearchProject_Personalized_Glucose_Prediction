@@ -243,7 +243,7 @@ If the day has N significant meal bundles and M excursions:
 
 1. **If N ~ M (+/-1):** The meal ordering and excursion ordering should correspond. Assign the k-th meal (by reported time order) to the k-th excursion (by time order). This respects the participant's recalled sequence while using the CGM for absolute timing.
 
-2. **If N > M (more meals than excursions):** Some meals share an excursion (stacking). Assign the largest-CHO meals first to excursions, then stack remaining meals onto the nearest anchor (validated by the excursion's active window -- see Step 8c).
+2. **If N > M (more meals than excursions):** Some meals share an excursion (stacking). Assign the highest-TOTSUG meals first to excursions (since sugar content best predicts acute excursion magnitude), then stack remaining meals onto the nearest anchor (validated by the excursion's active window -- see Step 8c).
 
 3. **If M > N (more excursions than meals):** Some excursions are non-meal (exercise, dawn phenomenon, stress). Match meals to excursions using the cost scoring, let extra excursions go unmatched.
 
@@ -264,9 +264,9 @@ For each excursion (sorted by time), find the best anchor meal:
 1. **For real-time days:** Score each unmatched significant meal:
    ```
    cost = W_time * |reported_time - est_meal_time| / 3600
-        + W_cho  * |norm_CHO - norm_rise|
+        + W_sug  * |norm_TOTSUG - norm_rise|
    ```
-   Where `W_time = 2.0`, `W_cho = 1.0`.
+   Where `W_time = 2.0`, `W_sug = 1.0`. Total sugars (TOTSUG) is used instead of total CHO because simple sugars drive the acute, sharp postprandial spikes that the excursion detector identifies. Total CHO includes starch and fibre, which produce slower, flatter responses that correlate poorly with excursion rise magnitude. CHO is still used for the threshold filter (`CHO_THRESHOLD`) since even starchy meals eventually raise glucose.
 
 2. **For batch days:** Use the **order-preserving assignment** from Step 7c instead of cost-based matching. The k-th meal in the recalled sequence maps to the k-th excursion.
 
