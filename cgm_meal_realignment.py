@@ -14,6 +14,8 @@ import matplotlib.dates as mdates
 
 warnings.filterwarnings("ignore")
 BASE = Path(r"C:\Users\Jose Miguel Sorando\Documents\RP Cleaning 4 (Claude)")
+SRC  = BASE / "source"
+OUT  = BASE / "output"
 
 # ── Config ──────────────────────────────────────────────────────────
 SMOOTHING_WINDOW        = 5
@@ -40,7 +42,7 @@ AMPM_SEARCH_WIN_MIN     = 45
 def _discover_files():
     """Find actual filenames on disk."""
     diary_f = mapping_f = None
-    for f in BASE.iterdir():
+    for f in SRC.iterdir():
         if not f.is_file() or f.suffix != ".csv": continue
         n = f.name.lower()
         if "patient_extract" in n and "corrected" in n: diary_f = f.name
@@ -89,7 +91,7 @@ def step1():
     print("="*72); print("STEP 1: Load ID Mapping and Discover CGM Files"); print("="*72)
     print(f"  Mapping: {mapping_f}")
 
-    mp = pd.read_csv(BASE/mapping_f, dtype=str)
+    mp = pd.read_csv(SRC/mapping_f, dtype=str)
     mp.columns = mp.columns.str.strip()
 
     mapping = {}
@@ -99,7 +101,7 @@ def step1():
         pids = [p.strip() for p in raw.replace("/",",").split(",") if p.strip()]
         cgm_path, chosen = None, pids[0] if pids else raw
         for pid in pids:
-            c = BASE/"cgm_data"/f"CGM_{pid}.csv"
+            c = SRC/"cgm_data"/f"CGM_{pid}.csv"
             if c.exists(): cgm_path, chosen = c, pid; break
         if mf24 not in mapping or (mapping[mf24][1] is None and cgm_path):
             mapping[mf24] = (chosen, cgm_path)
@@ -108,7 +110,7 @@ def step1():
     print(f"  {found} with CGM, {len(mapping)-found} without")
 
     print(f"\n  Loading diary: {diary_f}")
-    diary = pd.read_csv(BASE/diary_f, low_memory=False)
+    diary = pd.read_csv(SRC/diary_f, low_memory=False)
     diary["Patient Id"] = diary["Patient Id"].astype(str).str.strip()
     print(f"  {len(diary)} diary entries")
     return mapping, diary
@@ -597,7 +599,7 @@ def step10_csv(all_results):
     for c in cols:
         if c not in df.columns: df[c]=""
     df = df[cols]
-    out = BASE/"corrected_meal_times_ALL.csv"
+    out = OUT/"corrected_meal_times_ALL.csv"
     df.to_csv(out, index=False)
     print(f"  corrected_meal_times_ALL.csv  ({len(df)} rows)")
     return df
@@ -629,11 +631,11 @@ def step10_report(all_results, mapping, exc_counts, time_fmts, day_info):
             "median_shift_min":round(np.median(shifts),1) if shifts else 0,
         })
     df = pd.DataFrame(rows)
-    df.to_csv(BASE/"processing_report.csv", index=False)
+    df.to_csv(OUT/"processing_report.csv", index=False)
     print(f"  processing_report.csv         ({len(df)} rows)")
 
 def step10_plot(all_results, cgm_cache, mapping):
-    os.makedirs(BASE/"plots", exist_ok=True)
+    os.makedirs(OUT/"plots", exist_ok=True)
     pids_done = set()
     for mf24,(pid,cgm_p) in mapping.items():
         if pid in pids_done or cgm_p is None: continue
@@ -709,7 +711,7 @@ def step10_plot(all_results, cgm_cache, mapping):
         for di in range(len(all_dates), nrows*ncols):
             axes[di//ncols][di%ncols].set_visible(False)
         plt.tight_layout()
-        fig.savefig(BASE/"plots"/f"{pid}_overview.png", dpi=120)
+        fig.savefig(OUT/"plots"/f"{pid}_overview.png", dpi=120)
         plt.close(fig)
     print(f"  {len(pids_done)} participant plots")
 
@@ -747,7 +749,7 @@ def step10_global(all_results):
         axes[1,1].set_title("Mean shift by meal type"); axes[1,1].set_ylabel("Shift (min)")
         axes[1,1].tick_params(labelsize=7)
     plt.tight_layout()
-    fig.savefig(BASE/"plots"/"global_summary.png", dpi=120)
+    fig.savefig(OUT/"plots"/"global_summary.png", dpi=120)
     plt.close(fig)
     print(f"  plots/global_summary.png")
 

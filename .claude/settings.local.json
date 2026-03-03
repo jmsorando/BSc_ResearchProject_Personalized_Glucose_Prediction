@@ -19,7 +19,8 @@
       "Bash(where:*)",
       "Bash(py:*)",
       "Bash(py -3.11 --version:*)",
-      "Bash(claude install:*)"
+      "Bash(claude install:*)",
+      "Bash(cd C:\\\\Users\\\\Jose Miguel Sorando\\\\Documents\\\\RP Cleaning 4 \\(Claude\\):*)"
     ]
   }
 }

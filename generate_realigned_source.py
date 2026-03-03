@@ -21,16 +21,18 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 
 BASE = Path(r"C:\Users\Jose Miguel Sorando\Documents\RP Cleaning 4 (Claude)")
+SRC  = BASE / "source"
+OUT  = BASE / "output"
 
 
 def main():
     # ── Load data ─────────────────────────────────────────────────
     print("Loading source CSV...")
-    source = pd.read_csv(BASE / "patient_extract0912_filtered_corrected.csv", low_memory=False)
+    source = pd.read_csv(SRC / "patient_extract0912_filtered_corrected.csv", low_memory=False)
     print(f"  {len(source)} rows, {len(source.columns)} columns")
 
     print("Loading corrected_meal_times_ALL.csv...")
-    corrected = pd.read_csv(BASE / "corrected_meal_times_ALL.csv", low_memory=False)
+    corrected = pd.read_csv(OUT / "corrected_meal_times_ALL.csv", low_memory=False)
     print(f"  {len(corrected)} meal bundles")
 
     # ── Parse source ──────────────────────────────────────────────
@@ -153,7 +155,7 @@ def main():
     # ── Clean up temp columns and save ────────────────────────────
     source.drop(columns=["_date", "_parsed_time"], inplace=True)
 
-    out_path = BASE / "patient_extract0912_realigned.csv"
+    out_path = OUT / "patient_extract0912_realigned.csv"
     source.to_csv(out_path, index=False)
     print(f"\nSaved: {out_path.name}")
     print(f"  {len(source)} rows, {len(source.columns)} columns")

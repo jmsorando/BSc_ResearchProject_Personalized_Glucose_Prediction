@@ -27,7 +27,30 @@ The pipeline runs in 10 steps:
 9. *(reserved)*
 10. **Produce outputs** -- writes corrected CSV, processing report, per-participant CGM plots, and a global summary plot
 
-## Input Files
+## Project Structure
+
+```
+project/
+├── source/                                    # Input data (do not modify)
+│   ├── cgm_data/
+│   │   └── CGM_<ParticipantID>.csv
+│   ├── patient_extract0912_filtered_corrected.csv
+│   └── MyFood24 ID Matched(Sheet1).csv
+├── output/                                    # Generated results
+│   ├── plots/
+│   │   ├── <PID>_overview.png
+│   │   └── global_summary.png
+│   ├── corrected_meal_times_ALL.csv
+│   ├── patient_extract0912_realigned.csv
+│   └── processing_report.csv
+├── cgm_meal_realignment.py                    # Main pipeline
+├── generate_realigned_source.py               # Produces realigned source CSV
+├── CLOUDE_PROMPT.md                           # Prompt used to generate pipeline
+├── USER_PROMPT.md                             # Original user requirements
+└── README.md
+```
+
+## Input Files (in `source/`)
 
 | File | Description |
 |------|-------------|
@@ -35,14 +58,15 @@ The pipeline runs in 10 steps:
 | `MyFood24 ID Matched(Sheet1).csv` | Mapping of Participant ID to MyFood24 ID |
 | `cgm_data/CGM_<ParticipantID>.csv` | Per-participant CGM files with columns: isoDate, event_type, event_subtype, glucose (mmol/L), duration |
 
-## Output Files
+## Output Files (in `output/`)
 
 | File | Description |
 |------|-------------|
 | `corrected_meal_times_ALL.csv` | All meal events with original and corrected times, time shift, confidence level, matched excursion details, and nutritional totals |
+| `patient_extract0912_realigned.csv` | Copy of the source diary with "Time consumed at" replaced by CGM-corrected times and a `time_shift_min` column added |
 | `processing_report.csv` | Per-participant summary: match counts by confidence tier, excursion counts, mean/median shifts |
 | `plots/<PID>_overview.png` | Per-participant CGM overlay plots showing reported vs corrected meal times with directional arrows |
-| `plots/global_summary.png` | Aggregate statistics: shift distribution, CHO vs excursion rise, confidence breakdown, shift by meal type |
+| `plots/global_summary.png` | Aggregate statistics: CHO vs excursion rise, confidence breakdown, shift by meal type |
 
 ### Confidence Tiers
 
@@ -97,16 +121,22 @@ pip install pandas numpy scipy matplotlib
 
 ## Usage
 
-1. Place the food diary CSV and ID mapping CSV in the same directory as the script.
-2. Place all `CGM_*.csv` files in a `cgm_data/` subdirectory.
-3. Update the `BASE` path in `cgm_meal_realignment.py` to point to the project directory.
-4. Run:
+1. Place the food diary CSV and ID mapping CSV in the `source/` directory.
+2. Place all `CGM_*.csv` files in `source/cgm_data/`.
+3. Update the `BASE` path in `cgm_meal_realignment.py` to point to the project root.
+4. Run the main pipeline:
 
 ```bash
 python cgm_meal_realignment.py
 ```
 
-Outputs are written to the same directory, with plots in the `plots/` subdirectory.
+5. Then generate the realigned source CSV:
+
+```bash
+python generate_realigned_source.py
+```
+
+All outputs are written to the `output/` directory.
 
 ## License
 
