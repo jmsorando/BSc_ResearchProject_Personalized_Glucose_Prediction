@@ -337,10 +337,10 @@ def step5(diary_sub, mf24, tz_offset):
                     if b["reported_time"] and o["reported_time"]:
                         gap=abs((o["reported_time"]-b["reported_time"]).total_seconds()/60)
                         if gap<=CROSS_LABEL_MERGE_MIN:
-                            b["n_items"]+=o["n_items"]; b["total_CHO"]+=o["total_CHO"]
-                            b["total_FAT"]+=o["total_FAT"]; b["total_PROT"]+=o["total_PROT"]
-                            b["total_KCALS"]+=o["total_KCALS"]; b["total_TOTSUG"]+=o["total_TOTSUG"]
-                            b["total_FIBRE"]+=o["total_FIBRE"]
+                            b["n_items"]+=o["n_items"]
+                            for col in NUTRIENT_COLS:
+                                k = f"total_{col}"
+                                b[k] = b.get(k, 0) + o.get(k, 0)
                             b["food_items"]+="; "+o["food_items"]
                             absorbed.add(j)
             final.append(b)
@@ -359,18 +359,18 @@ def _agg(rows, label, d):
     rep = sorted(times)[len(times)//2] if times else None
 
     added_list = df["Item added at"].tolist() if "Item added at" in df.columns else []
-    return {
+    result = {
         "meal_label": label, "date": d, "reported_time": rep,
         "n_items": len(df),
-        "total_CHO":    df["CHO"].astype(float).sum(),
-        "total_FAT":    df["FAT"].astype(float).sum(),
-        "total_PROT":   df["PROT"].astype(float).sum(),
-        "total_KCALS":  df["KCALS"].astype(float).sum(),
-        "total_TOTSUG": df["TOTSUG"].astype(float).sum(),
-        "total_FIBRE":  df["AOACFIB"].astype(float).sum(),
         "food_items": "; ".join(df["Food name"].astype(str).tolist()),
         "_added_list": added_list,
     }
+    for col in NUTRIENT_COLS:
+        if col in df.columns:
+            result[f"total_{col}"] = pd.to_numeric(df[col], errors="coerce").sum()
+        else:
+            result[f"total_{col}"] = 0.0
+    return result
 
 # ═══════════════════════════════════════════════════════════════════
 #  STEP 6
@@ -486,10 +486,10 @@ def step8(bundles_by_date, exc_by_date, day_info, tf, mf24, gaps, cgm_dates):
         for i,b in enumerate(bundles):
             r = {"participant_id":"", "myfood24_id":mf24, "date":d,
                  "meal_label":b["meal_label"], "food_items":b["food_items"],
-                 "n_items":b["n_items"],
-                 "total_CHO":round(b["total_CHO"],2), "total_FAT":round(b["total_FAT"],2),
-                 "total_PROT":round(b["total_PROT"],2), "total_KCALS":round(b["total_KCALS"],2),
-                 "total_TOTSUG":round(b["total_TOTSUG"],2), "total_FIBRE":round(b["total_FIBRE"],2),
+                 "n_items":b["n_items"]}
+            for col in NUTRIENT_COLS:
+                r[f"total_{col}"] = round(b.get(f"total_{col}", 0), 4)
+            r.update({
                  "reported_time":b["reported_time"], "corrected_time":b["reported_time"],
                  "time_shift_min":0.0, "confidence":"", "match_type":"",
                  "excursion_id":"", "stacked_onto_event_id":"",
@@ -497,7 +497,7 @@ def step8(bundles_by_date, exc_by_date, day_info, tf, mf24, gaps, cgm_dates):
                  "nadir_time":pd.NaT, "peak_time":pd.NaT,
                  "batch_day":is_batch, "time_format":tf,
                  "ampm_resolved_by":b.get("ampm_resolved_by",""),
-                 "tz_offset":"", "event_id":b["_eid"]}
+                 "tz_offset":"", "event_id":b["_eid"]})
 
             if b["total_CHO"]<=CHO_THRESHOLD:       r["confidence"]="low_cho_no_match"
             elif not has_cgm:                        r["confidence"]="no_cgm_data"
@@ -590,18 +590,19 @@ def _apply(r, b, exc, is_batch, tf):
 #  STEP 10
 # ═══════════════════════════════════════════════════════════════════
 def step10_csv(all_results):
-    cols = ["participant_id","myfood24_id","date","meal_label","food_items","n_items",
-            "total_CHO","total_FAT","total_PROT","total_KCALS","total_TOTSUG","total_FIBRE",
-            "reported_time","corrected_time","time_shift_min","confidence","match_type",
-            "excursion_id","stacked_onto_event_id","excursion_rise_mmol","excursion_peak_mmol",
-            "nadir_time","peak_time","batch_day","time_format","ampm_resolved_by","tz_offset","event_id"]
+    nutrient_cols = [f"total_{c}" for c in NUTRIENT_COLS]
+    cols = (["participant_id","myfood24_id","date","corrected_time","meal_label","food_items","n_items"]
+            + nutrient_cols
+            + ["reported_time","time_shift_min","confidence","match_type",
+               "excursion_id","stacked_onto_event_id","excursion_rise_mmol","excursion_peak_mmol",
+               "nadir_time","peak_time","batch_day","time_format","ampm_resolved_by","tz_offset","event_id"])
     df = pd.DataFrame(all_results)
     for c in cols:
         if c not in df.columns: df[c]=""
     df = df[cols]
     out = OUT/"corrected_meal_times_ALL.csv"
     df.to_csv(out, index=False)
-    print(f"  corrected_meal_times_ALL.csv  ({len(df)} rows)")
+    print(f"  corrected_meal_times_ALL.csv  ({len(df)} rows, {len(nutrient_cols)} nutrient columns)")
     return df
 
 def step10_report(all_results, mapping, exc_counts, time_fmts, day_info):
@@ -757,10 +758,31 @@ def step10_global(all_results):
 #  MAIN
 # ═══════════════════════════════════════════════════════════════════
 day_info_global = {}
+NUTRIENT_COLS = []
+
+_META_COLS = {
+    "Patient Id", "Sex", "Date", "Time consumed at", "Item added at",
+    "Meal", "Consumption method", "Food EAN", "Food name",
+    "Food category", "Food sub category", "Recipe name",
+    "Quantity", "Portion description", "Dry portion multiplier",
+    "Total portion size", "Portion unit",
+}
+
+def _discover_nutrient_cols(diary):
+    """Identify all numeric nutrient columns from the diary DataFrame."""
+    cols = []
+    for c in diary.columns:
+        if c in _META_COLS or c.startswith("Target "):
+            continue
+        if pd.to_numeric(diary[c], errors="coerce").notna().any():
+            cols.append(c)
+    return cols
 
 def main():
-    global day_info_global
+    global day_info_global, NUTRIENT_COLS
     mapping, diary = step1()
+    NUTRIENT_COLS = _discover_nutrient_cols(diary)
+    print(f"  {len(NUTRIENT_COLS)} nutrient columns detected")
     time_fmts, day_info = step2(diary, mapping)
     day_info_global = day_info
 
