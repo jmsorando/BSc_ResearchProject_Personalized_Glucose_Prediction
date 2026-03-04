@@ -27,6 +27,40 @@ The pipeline runs in 10 steps:
 9. *(reserved)*
 10. **Produce outputs** -- writes corrected CSV, processing report, per-participant CGM plots, and a global summary plot
 
+## iAUC Computation (`compute_iauc.py`)
+
+After the main pipeline produces `corrected_meal_times_ALL.csv`, this script computes the **incremental Area Under the Curve (iAUC)** of glucose for each meal event using raw CGM traces. iAUC quantifies the total postprandial glucose exposure above baseline over a 2-hour window -- the standard metric for glycaemic response (Wolever/FAO convention).
+
+### Method
+
+1. **Baseline identification** -- for each meal event with a matched excursion, the nadir time (pre-meal glucose minimum) is converted from local time to UTC and snapped to the nearest CGM reading (within 10 min)
+2. **Window extraction** -- a 2-hour CGM window is extracted from nadir to nadir + 120 min
+3. **Trapezoidal iAUC** -- the positive-only trapezoidal rule is applied: only glucose increments above the baseline (nadir glucose) contribute to the area. Dips below baseline are clamped to zero
+4. **Quality gating** -- events are flagged if CGM coverage is insufficient (< 3 readings) or if gaps exceed 15 min
+
+### Output Columns (in `iauc_meal_events.csv`)
+
+| Column | Description |
+|--------|-------------|
+| `baseline_glucose_mmol` | Glucose at the nadir (start of excursion), mmol/L |
+| `iAUC_mmol_min` | Incremental area under the curve, mmol·min/L |
+| `iAUC_mmol_h` | Same as above divided by 60, mmol·h/L |
+| `peak_glucose_mmol` | Highest glucose in the 2h window, mmol/L |
+| `time_to_peak_min` | Minutes from nadir to peak |
+| `glucose_at_120min_mmol` | Glucose at end of 2h window, mmol/L |
+| `n_readings` | Number of CGM readings in the window |
+| `pct_coverage` | Proportion of expected readings present (25 expected for 2h at 5-min intervals) |
+| `max_gap_min` | Largest gap between consecutive readings, minutes |
+| `iauc_status` | `ok`, `gap_too_large`, `insufficient_cgm`, `no_cgm_file`, or passthrough confidence label |
+
+### Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `WINDOW_MIN` | 120 | Postprandial window duration (minutes) |
+| `MAX_NADIR_SNAP` | 10 | Max minutes between nadir time and nearest CGM reading |
+| `GAP_FLAG_MIN` | 15 | Flag events with gaps exceeding this (minutes) |
+
 ## Project Structure
 
 ```
@@ -41,9 +75,11 @@ project/
 │   │   ├── <PID>_overview.png
 │   │   └── global_summary.png
 │   ├── corrected_meal_times_ALL.csv
+│   ├── iauc_meal_events.csv
 │   ├── patient_extract0912_realigned.csv
 │   └── processing_report.csv
 ├── cgm_meal_realignment.py                    # Main pipeline
+├── compute_iauc.py                            # iAUC computation from CGM + aligned meals
 ├── generate_realigned_source.py               # Produces realigned source CSV
 ├── CLOUDE_PROMPT.md                           # Prompt used to generate pipeline
 ├── USER_PROMPT.md                             # Original user requirements
@@ -63,6 +99,7 @@ project/
 | File | Description |
 |------|-------------|
 | `corrected_meal_times_ALL.csv` | All meal events with original and corrected times, time shift, confidence level, matched excursion details, and nutritional totals |
+| `iauc_meal_events.csv` | Extension of `corrected_meal_times_ALL.csv` with 10 iAUC columns added after `meal_label`: baseline glucose, iAUC (mmol·min/L and mmol·h/L), peak glucose, time to peak, glucose at 120 min, CGM coverage metrics, and status |
 | `patient_extract0912_realigned.csv` | Copy of the source diary with "Time consumed at" replaced by CGM-corrected times and a `time_shift_min` column added |
 | `processing_report.csv` | Per-participant summary: match counts by confidence tier, excursion counts, mean/median shifts |
 | `plots/<PID>_overview.png` | Per-participant CGM overlay plots showing reported vs corrected meal times with directional arrows |
@@ -130,7 +167,13 @@ pip install pandas numpy scipy matplotlib
 python cgm_meal_realignment.py
 ```
 
-5. Then generate the realigned source CSV:
+5. Compute iAUC for each meal event:
+
+```bash
+python compute_iauc.py
+```
+
+6. Generate the realigned source CSV:
 
 ```bash
 python generate_realigned_source.py
