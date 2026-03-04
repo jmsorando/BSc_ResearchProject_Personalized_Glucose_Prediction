@@ -499,7 +499,7 @@ def step8(bundles_by_date, exc_by_date, day_info, tf, mf24, gaps, cgm_dates):
                  "ampm_resolved_by":b.get("ampm_resolved_by",""),
                  "tz_offset":"", "event_id":b["_eid"]})
 
-            if b["total_CHO"]<=CHO_THRESHOLD:       r["confidence"]="low_cho_no_match"
+            if b["total_CHO"]<=CHO_THRESHOLD:         r["confidence"]="low_cho_no_match"
             elif not has_cgm:                        r["confidence"]="no_cgm_data"
             elif is_flat:                            r["confidence"]="flat_trace"
             elif in_gap(b["reported_time"]):          r["confidence"]="cgm_gap"
