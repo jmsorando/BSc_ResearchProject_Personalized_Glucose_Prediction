@@ -37,11 +37,11 @@ cgm_meal_realignment.py    -->   generate_realigned_source.py --> build_feature_
 
 Inputs:                          Inputs:                          Inputs:
   patient_extract1602.csv          patient_extract1602.csv          corrected_meal_times_ALL.csv
-  MyFood24 ID Matched.csv         corrected_meal_times_ALL.csv     patient_extract0912_realigned.csv
+  MyFood24 ID Matched.csv         corrected_meal_times_ALL.csv     patient_extract1602_realigned.csv
   CGM_*.csv files                                                   CGM_*.csv files
                                                                     patient_extract1602.csv (sex)
 Outputs:                         Output:                          Output:
-  corrected_meal_times_ALL.csv     patient_extract0912_realigned    feature_matrix.csv
+  corrected_meal_times_ALL.csv     patient_extract1602_realigned    feature_matrix.csv
   processing_report.csv              .csv                           (2,228 rows, 96 columns)
   plots/ (75 per-participant
     + global_summary.png)
@@ -102,7 +102,7 @@ high > medium > stacked > low_ampm_override > low_batch_override > low_clamped >
 
 Takes the original food diary (`patient_extract1602.csv`) and the pipeline output (`corrected_meal_times_ALL.csv`), maps each food item row to its meal bundle, and applies the time shift from the CGM realignment.
 
-**Output**: `patient_extract0912_realigned.csv` -- same columns as source, with:
+**Output**: `patient_extract1602_realigned.csv` -- same columns as source, with:
 - `Time consumed at` replaced with CGM-corrected time
 - New column `time_shift_min` showing the shift applied per row
 
@@ -206,7 +206,7 @@ RP Cleaning 5/
 │   │   ├── <PID>_overview.png                 # 75 per-participant plots
 │   │   └── global_summary.png
 │   ├── corrected_meal_times_ALL.csv           # 5,200 meal events with corrections
-│   ├── patient_extract0912_realigned.csv      # Realigned food diary (16,216 rows)
+│   ├── patient_extract1602_realigned.csv      # Realigned food diary (16,216 rows)
 │   ├── processing_report.csv                  # Per-participant summary (105 rows)
 │   └── feature_matrix.csv                     # XGBoost-ready matrix (2,228 rows, 96 cols)
 ├── cgm_meal_realignment.py                    # Stage 1: CGM meal realignment (10 steps)
@@ -233,7 +233,7 @@ RP Cleaning 5/
 |---|---|---|
 | `corrected_meal_times_ALL.csv` | `output/` | 5,200 meal events with original and corrected times, time shift, confidence, excursion details, 135 nutrient columns |
 | `processing_report.csv` | `output/` | Per-participant summary (105 rows): match counts by confidence tier, excursion counts, mean/median shifts |
-| `patient_extract0912_realigned.csv` | `output/` | Copy of source diary with corrected times and `time_shift_min` column (16,216 rows) |
+| `patient_extract1602_realigned.csv` | `output/` | Copy of source diary with corrected times and `time_shift_min` column (16,216 rows) |
 | `feature_matrix.csv` | `output/` | XGBoost-ready matrix filtered to rows with computed iAUC (2,228 rows, 96 columns) |
 | `plots/<PID>_overview.png` | `output/plots/` | Per-participant CGM overlay plots |
 | `plots/global_summary.png` | `output/plots/` | Aggregate statistics: shift histogram, CHO vs rise scatter, confidence breakdown, shift by meal type |

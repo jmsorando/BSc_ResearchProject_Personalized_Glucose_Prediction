@@ -6,7 +6,7 @@ Reads the original patient_extract0912_filtered_corrected.csv and the
 pipeline output corrected_meal_times_ALL.csv, maps each food item row
 to its meal bundle, and applies the time shift from the CGM realignment.
 
-Output: patient_extract0912_realigned.csv
+Output: patient_extract1602_realigned.csv
   - Same columns as source
   - "Time consumed at" replaced with the CGM-corrected time
   - New column "time_shift_min" showing the shift applied per row
@@ -155,7 +155,7 @@ def main():
     # ── Clean up temp columns and save ────────────────────────────
     source.drop(columns=["_date", "_parsed_time"], inplace=True)
 
-    out_path = OUT / "patient_extract0912_realigned.csv"
+    out_path = OUT / "patient_extract1602_realigned.csv"
     source.to_csv(out_path, index=False)
     print(f"\nSaved: {out_path.name}")
     print(f"  {len(source)} rows, {len(source.columns)} columns")

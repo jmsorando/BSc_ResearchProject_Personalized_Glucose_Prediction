@@ -20,7 +20,7 @@ from collections import Counter
 BASE         = Path(r"C:\Users\Jose Miguel Sorando\Documents\RP Cleaning 5")
 CGM_DIR      = BASE / "source" / "cgm_data"
 MEAL_FILE    = BASE / "output" / "corrected_meal_times_ALL.csv"
-EXTRACT_FILE = BASE / "output" / "patient_extract0912_realigned.csv"
+EXTRACT_FILE = BASE / "output" / "patient_extract1602_realigned.csv"
 MATCH_FILE   = BASE / "source" / "MyFood24 ID Matched(Sheet1).csv"
 SOURCE_FILE  = BASE / "source" / "patient_extract1602.csv"
 OUTPUT_FILE  = BASE / "output" / "feature_matrix.csv"
